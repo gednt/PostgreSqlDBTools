@@ -340,3 +340,7 @@ ASALocalRun/
 healthchecksdb.nuget/
 # NuGet executable
 .nuget/nuget.exe
+
+# NuGet console runner and temp tools
+tools/
+nuget.exe
