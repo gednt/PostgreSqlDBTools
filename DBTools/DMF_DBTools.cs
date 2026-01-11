@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+﻿using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -8,7 +8,7 @@ using System.Dynamic;
 namespace DBToolsDll
 {
     /// <summary>
-    /// DBTools is a Mysql Library to manipulate data in MySql Databases
+    /// DBTools is a PostgreSQL Library to manipulate data in PostgreSQL Databases
     /// </summary>
     public class DBTools
     {
@@ -30,21 +30,21 @@ namespace DBToolsDll
 
         private string _connectionString;
 
-        private List<MySqlParameter> mySqlParameters;
+        private List<NpgsqlParameter> npgsqlParameters;
         public int count;
         #endregion
 
         #region public getters and setters
         public DBTools()
         {
-            //STANDARD TCP/IP Port
-            port = "3306";
+            //STANDARD PostgreSQL TCP/IP Port
+            port = "5432";
         }
         /// <summary>
         /// It is used to place the server address of the database <br></br>
-        /// Example(localhost:3306 or localhost:4001) <br></br>
+        /// Example(localhost or 127.0.0.1) <br></br>
         /// It is in this formatting.
-        /// Host:Port
+        /// Host
         /// </summary>
         public string Host
         {
@@ -157,7 +157,7 @@ namespace DBToolsDll
             }
         }
         /// <summary>
-        /// Specify the port of the database: Standard 3306
+        /// Specify the port of the database: Standard 5432
         ///
         /// </summary>
         public string Port { get => port; set => port = value; }
@@ -167,14 +167,14 @@ namespace DBToolsDll
 
             get
             {
-                _connectionString = String.Format("Server={0};Port={1};Database={2};Uid={3};Pwd = {4};", host, port, database, uid, password);
+                _connectionString = String.Format("Host={0};Port={1};Database={2};Username={3};Password={4};", host, port, database, uid, password);
                 return _connectionString;
 
             }
 
         }
 
-        public List<MySqlParameter> MySqlParameters { get => mySqlParameters; set => mySqlParameters = value; }
+        public List<NpgsqlParameter> NpgsqlParameters { get => npgsqlParameters; set => npgsqlParameters = value; }
         #endregion
 
         #region legacy getters and setters
@@ -231,31 +231,31 @@ namespace DBToolsDll
         #region Public Day One Methods
         /// <summary>
         /// Executes the Query in the database.<br/>
-        /// This method is deprecated, use <see cref="MySQLExecuteQuery(string)"/> instead, for better security and compliance with the standards.
+        /// This method is deprecated, use <see cref="PostgreSQLExecuteQuery(string)"/> instead, for better security and compliance with the standards.
         /// </summary>
         /// 
-        [Obsolete("This method is deprecated and should use MySqlExecuteQuery instead", false)]
-        public void mySQLExecuteQuery()
+        [Obsolete("This method is deprecated and should use PostgreSQLExecuteQuery instead", false)]
+        public void postgreSQLExecuteQuery()
         {
 
-            MySqlConnection mySqlConnection = new MySqlConnection(ConnectionString);
-            mySqlConnection.Open();
+            NpgsqlConnection npgsqlConnection = new NpgsqlConnection(ConnectionString);
+            npgsqlConnection.Open();
             try
             {
-                MySqlCommand mySqlCommand = mySqlConnection.CreateCommand();
-                mySqlCommand.CommandText = this.getQuery();
-                mySqlCommand.ExecuteNonQuery();
+                NpgsqlCommand npgsqlCommand = npgsqlConnection.CreateCommand();
+                npgsqlCommand.CommandText = this.getQuery();
+                npgsqlCommand.ExecuteNonQuery();
             }
-            catch (MySqlException ex)
+            catch (NpgsqlException ex)
             {
                 this.Error = ex.ToString();
             }
             finally
             {
-                bool flag = mySqlConnection.State == ConnectionState.Open;
+                bool flag = npgsqlConnection.State == ConnectionState.Open;
                 if (flag)
                 {
-                    mySqlConnection.Close();
+                    npgsqlConnection.Close();
                 }
             }
         }
@@ -266,29 +266,29 @@ namespace DBToolsDll
         /// </summary>
         /// <returns></returns>
         /// 
-        [Obsolete("This Method is deprecated, use RetrieveObjectMySQL or RetrieveDataMySQL instead", false)]
-        public DataView retrieveDataMySQL()
+        [Obsolete("This Method is deprecated, use RetrieveObjectPostgreSQL or RetrieveDataPostgreSQL instead", false)]
+        public DataView retrieveDataPostgreSQL()
         {
             DataView defaultView = new DataView();
             try
             {
 
-                MySqlCommand mySqlCommand = new MySqlCommand();
-                MySqlConnection mySqlConnection = new MySqlConnection(ConnectionString);
+                NpgsqlCommand npgsqlCommand = new NpgsqlCommand();
+                NpgsqlConnection npgsqlConnection = new NpgsqlConnection(ConnectionString);
                 //Verifica se a conexão foi aberta com sucesso
                 try
                 {
-                    mySqlConnection.Open();
-                    mySqlCommand = mySqlConnection.CreateCommand();
-                    mySqlCommand.CommandText = this.getQuery();
-                    MySqlDataAdapter mySqlDataAdapter = new MySqlDataAdapter(mySqlCommand);
+                    npgsqlConnection.Open();
+                    npgsqlCommand = npgsqlConnection.CreateCommand();
+                    npgsqlCommand.CommandText = this.getQuery();
+                    NpgsqlDataAdapter npgsqlDataAdapter = new NpgsqlDataAdapter(npgsqlCommand);
                     DataSet dataSet = new DataSet();
-                    mySqlDataAdapter.Fill(dataSet);
+                    npgsqlDataAdapter.Fill(dataSet);
                     this.Count = dataSet.Tables.Count;
                     defaultView = dataSet.Tables[0].DefaultView;
-                    mySqlConnection.Close();
+                    npgsqlConnection.Close();
                 }
-                catch (MySqlException e)
+                catch (NpgsqlException e)
                 {
                     Error = e.ToString();
 
@@ -311,16 +311,16 @@ namespace DBToolsDll
         /// Returns a list of <see cref="GenericObject"/> that can be used in a variety of scenarios
         /// </summary>
         /// <returns></returns>
-        public List<GenericObject> RetrieveObjectMySQL()
+        public List<GenericObject> RetrieveObjectPostgreSQL()
         {
-            using (MySql.Data.MySqlClient.MySqlConnection conn = new MySqlConnection(this.ConnectionString))
+            using (Npgsql.NpgsqlConnection conn = new NpgsqlConnection(this.ConnectionString))
             {
-                MySqlCommand command = new MySqlCommand(this.Query, conn);
-                if (MySqlParameters != null)
-                    command.Parameters.AddRange(MySqlParameters.ToArray());
-                MySqlDataAdapter mySqlDataAdapter = new MySqlDataAdapter(command);
+                NpgsqlCommand command = new NpgsqlCommand(this.Query, conn);
+                if (NpgsqlParameters != null)
+                    command.Parameters.AddRange(NpgsqlParameters.ToArray());
+                NpgsqlDataAdapter npgsqlDataAdapter = new NpgsqlDataAdapter(command);
                 DataSet dataSet = new DataSet();
-                mySqlDataAdapter.Fill(dataSet);
+                npgsqlDataAdapter.Fill(dataSet);
                 List<GenericObject> lstObject = new List<GenericObject>();
 
                 List<String> columns = new List<string>();
@@ -357,9 +357,9 @@ namespace DBToolsDll
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public List<ExpandoObject> RetrieveObjectMySQL_Entity(Type obj)
+        public List<ExpandoObject> RetrieveObjectPostgreSQL_Entity(Type obj)
         {
-            using (MySql.Data.MySqlClient.MySqlConnection conn = new MySqlConnection(this.ConnectionString))
+            using (Npgsql.NpgsqlConnection conn = new NpgsqlConnection(this.ConnectionString))
             {
               
                 List<ExpandoObject> lstObject = new List<ExpandoObject>();
@@ -368,12 +368,12 @@ namespace DBToolsDll
 
                 try
                 {
-                    MySqlCommand command = new MySqlCommand(this.Query, conn);
-                    if (MySqlParameters != null)
-                        command.Parameters.AddRange(MySqlParameters.ToArray());
-                    MySqlDataAdapter mySqlDataAdapter = new MySqlDataAdapter(command);
+                    NpgsqlCommand command = new NpgsqlCommand(this.Query, conn);
+                    if (NpgsqlParameters != null)
+                        command.Parameters.AddRange(NpgsqlParameters.ToArray());
+                    NpgsqlDataAdapter npgsqlDataAdapter = new NpgsqlDataAdapter(command);
                     DataSet dataSet = new DataSet();
-                    mySqlDataAdapter.Fill(dataSet);
+                    npgsqlDataAdapter.Fill(dataSet);
 
                     DataView values = dataSet.Tables[0].DefaultView;
 
@@ -395,7 +395,7 @@ namespace DBToolsDll
 
                     }
                 }
-                catch(MySqlException e)
+                catch(NpgsqlException e)
                 {
                     Error = e.Message;
                 }
@@ -409,34 +409,34 @@ namespace DBToolsDll
 
         /// <summary>
         /// Executes a sql query and, if sucessful, returns a void string, if error, returns the error message<br/>
-        /// Concatenating the query is not recommendable, use <see cref="MySqlParameters"/> to pass your parameters before executing this command.<br/>
+        /// Concatenating the query is not recommendable, use <see cref="NpgsqlParameters"/> to pass your parameters before executing this command.<br/>
         /// </summary>
         /// 
-        public void MySQLExecuteQuery(String query = "")
+        public void PostgreSQLExecuteQuery(String query = "")
         {
 
-            using (MySqlConnection mySqlConnection = new MySqlConnection(ConnectionString))
+            using (NpgsqlConnection npgsqlConnection = new NpgsqlConnection(ConnectionString))
             {
-                mySqlConnection.Open();
+                npgsqlConnection.Open();
                 try
                 {
-                    MySqlCommand mySqlCommand = mySqlConnection.CreateCommand();
-                    mySqlCommand.CommandText = this.getQuery();
-                    if (MySqlParameters != null)
-                        mySqlCommand.Parameters.AddRange(MySqlParameters.ToArray());
-                    mySqlCommand.ExecuteNonQuery();
+                    NpgsqlCommand npgsqlCommand = npgsqlConnection.CreateCommand();
+                    npgsqlCommand.CommandText = this.getQuery();
+                    if (NpgsqlParameters != null)
+                        npgsqlCommand.Parameters.AddRange(NpgsqlParameters.ToArray());
+                    npgsqlCommand.ExecuteNonQuery();
                 }
-                catch (MySqlException ex)
+                catch (NpgsqlException ex)
                 {
                     this.Error = ex.ToString();
                 }
-                mySqlConnection.Close();
+                npgsqlConnection.Close();
                 //finally
                 //{
-                //    bool flag = mySqlConnection.State == ConnectionState.Open;
+                //    bool flag = npgsqlConnection.State == ConnectionState.Open;
                 //    if (flag)
                 //    {
-                //        mySqlConnection.Close();
+                //        npgsqlConnection.Close();
                 //    }
                 //}
             }
@@ -447,29 +447,29 @@ namespace DBToolsDll
 
         /// <summary>
         /// Retrieves the DataView Representation in the database.<br/>
-        /// Concatenating the query is not recommendable, use <see cref="MySqlParameters"/> to pass your parameters before executing this command.<br/>
+        /// Concatenating the query is not recommendable, use <see cref="NpgsqlParameters"/> to pass your parameters before executing this command.<br/>
         /// </summary>
         /// <returns></returns>
-        public DataView RetrieveDataMySQL(String query = "")
+        public DataView RetrieveDataPostgreSQL(String query = "")
         {
             DataView defaultView = new DataView();
             try
             {
 
-                using (MySql.Data.MySqlClient.MySqlConnection conn = new MySqlConnection(this.ConnectionString))
+                using (Npgsql.NpgsqlConnection conn = new NpgsqlConnection(this.ConnectionString))
                 {
                     try
                     {
-                        MySqlCommand mySqlCommand = new MySqlCommand(query != "" ? query : this.Query, conn);
-                        if (mySqlParameters != null)
-                            mySqlCommand.Parameters.AddRange(MySqlParameters.ToArray());
-                        MySqlDataAdapter mySqlDataAdapter = new MySqlDataAdapter(mySqlCommand);
+                        NpgsqlCommand npgsqlCommand = new NpgsqlCommand(query != "" ? query : this.Query, conn);
+                        if (npgsqlParameters != null)
+                            npgsqlCommand.Parameters.AddRange(NpgsqlParameters.ToArray());
+                        NpgsqlDataAdapter npgsqlDataAdapter = new NpgsqlDataAdapter(npgsqlCommand);
                         DataSet dataSet = new DataSet();
-                        mySqlDataAdapter.Fill(dataSet);
+                        npgsqlDataAdapter.Fill(dataSet);
                         this.Count = dataSet.Tables.Count;
                         defaultView = dataSet.Tables[0].DefaultView;
                     }
-                    catch (MySqlException e)
+                    catch (NpgsqlException e)
                     {
                         Error = e.ToString();
 

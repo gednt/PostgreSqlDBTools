@@ -1,12 +1,12 @@
 # UtilsController<T> Usage Guide
 
-The `UtilsController<T>` class provides Entity Framework-like LINQ manipulation for MySQL databases. It is a generic controller compatible with any model type and offers CRUD operations with LINQ-style syntax.
+The `UtilsController<T>` class provides Entity Framework-like LINQ manipulation for PostgreSQL databases. It is a generic controller compatible with any model type and offers CRUD operations with LINQ-style syntax.
 
 ## Features
 
 - **Generic Type Support**: Works with any POCO (Plain Old CLR Object) model
 - **LINQ Expressions**: Use lambda expressions for filtering and querying
-- **Parameterized Queries**: All operations use MySqlParameter for SQL injection protection
+- **Parameterized Queries**: All operations use NpgsqlParameter for SQL injection protection
 - **Entity Framework-like API**: Familiar methods like `Where()`, `FirstOrDefault()`, `Add()`, `Update()`, `Remove()`
 
 ## Installation
@@ -38,9 +38,9 @@ public class User
 var userController = new UtilsController<User>(
     host: "localhost",
     database: "mydb",
-    uid: "root",
+    uid: "postgres",
     password: "password",
-    port: "3306",
+    port: "5432",
     tableName: "users",        // Optional: defaults to type name "User"
     primaryKeyName: "Id",      // Optional: defaults to "Id"
     autoIncrement: true        // Optional: defaults to true
@@ -192,7 +192,7 @@ namespace MyApplication
             var productController = new UtilsController<Product>(
                 host: "localhost",
                 database: "shop_db",
-                uid: "root",
+                uid: "postgres",
                 password: "password",
                 tableName: "products"
             );
@@ -234,7 +234,7 @@ namespace MyApplication
 
 ## Security Notes
 
-All query operations use parameterized queries with MySqlParameter to prevent SQL injection attacks. Table and field names are validated to ensure they contain only safe characters.
+All query operations use parameterized queries with NpgsqlParameter to prevent SQL injection attacks. Table and field names are validated to ensure they contain only safe characters.
 
 ## Comparison with Utils Class
 
@@ -249,13 +249,13 @@ The `UtilsController<T>` extends the base `Utils` class with:
 
 **Before (Utils):**
 ```csharp
-var utils = new Utils("localhost", "mydb", "root", "password", "3306");
+var utils = new Utils("localhost", "mydb", "postgres", "password", "5432");
 DataView dv = utils.Select("*", "users", "name = 'John'");
 ```
 
 **After (UtilsController<T>):**
 ```csharp
-var controller = new UtilsController<User>("localhost", "mydb", "root", "password", "3306");
+var controller = new UtilsController<User>("localhost", "mydb", "postgres", "password", "5432");
 List<User> users = controller.Where(u => u.Name == "John");
 ```
 

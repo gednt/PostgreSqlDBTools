@@ -9,7 +9,7 @@ using DBTools.Model;
 namespace DBTools_Utilities
 {
     /// <summary>
-    /// Utils Class of the Mysql DBTools Library
+    /// Utils Class of the PostgreSQL DBTools Library
     /// </summary>
     public class Utils : DBToolsDll.DBTools
     {
@@ -50,7 +50,7 @@ namespace DBTools_Utilities
         /// <summary>
         /// Validates that an identifier (table name, column name) contains only safe characters.
         /// This helps prevent SQL injection in cases where identifiers cannot be parameterized.
-        /// Allows alphanumeric characters, underscores, backticks, and periods for qualified names.
+        /// Allows alphanumeric characters, underscores, double quotes, and periods for qualified names.
         /// For field lists (with multiple fields), use ValidateFieldList instead.
         /// </summary>
         /// <param name="identifier">The identifier to validate</param>
@@ -69,20 +69,21 @@ namespace DBTools_Utilities
                 return;
             }
 
-            // For single identifiers: allow alphanumeric, underscore, backtick (for escaping), period (for qualified names)
+            // For single identifiers: allow alphanumeric, underscore, double quote (for escaping), period (for qualified names)
+            // PostgreSQL uses double quotes for identifiers instead of backticks
             // This is a conservative approach to prevent injection
             foreach (char c in identifier)
             {
-                if (!char.IsLetterOrDigit(c) && c != '_' && c != '`' && c != '.')
+                if (!char.IsLetterOrDigit(c) && c != '_' && c != '"' && c != '.')
                 {
-                    throw new ArgumentException($"The {identifierType} name '{identifier}' contains invalid characters. Only alphanumeric characters, underscores, backticks, and periods are allowed.");
+                    throw new ArgumentException($"The {identifierType} name '{identifier}' contains invalid characters. Only alphanumeric characters, underscores, double quotes, and periods are allowed.");
                 }
             }
         }
 
         /// <summary>
         /// Validates a comma-separated list of field identifiers.
-        /// Each field can contain alphanumeric characters, underscores, backticks, periods, and asterisks.
+        /// Each field can contain alphanumeric characters, underscores, double quotes, periods, and asterisks.
         /// Spaces are allowed only between tokens for readability (e.g., "field1, field2").
         /// </summary>
         /// <param name="fieldList">Comma-separated field list</param>
@@ -108,13 +109,14 @@ namespace DBTools_Utilities
                 // For basic field names, no spaces should be present
                 bool hasSpace = trimmedField.Contains(" ");
                 
-                // Allow alphanumeric, underscore, backtick, period, asterisk (for SELECT *)
+                // Allow alphanumeric, underscore, double quote, period, asterisk (for SELECT *)
+                // PostgreSQL uses double quotes instead of backticks
                 // Spaces are allowed but trigger additional validation
                 foreach (char c in trimmedField)
                 {
-                    if (!char.IsLetterOrDigit(c) && c != '_' && c != '`' && c != '.' && c != '*' && c != ' ')
+                    if (!char.IsLetterOrDigit(c) && c != '_' && c != '"' && c != '.' && c != '*' && c != ' ')
                     {
-                        throw new ArgumentException($"The field '{trimmedField}' contains invalid characters. Only alphanumeric characters, underscores, backticks, periods, asterisks, and spaces are allowed.");
+                        throw new ArgumentException($"The field '{trimmedField}' contains invalid characters. Only alphanumeric characters, underscores, double quotes, periods, asterisks, and spaces are allowed.");
                     }
                 }
 
@@ -140,7 +142,7 @@ namespace DBTools_Utilities
         /// This enforces security by rejecting conditions that appear to embed values directly.
         /// </summary>
         /// <param name="condition">The WHERE condition to validate</param>
-        /// <param name="hasParameters">Whether MySqlParameters is set</param>
+        /// <param name="hasParameters">Whether NpgsqlParameters is set</param>
         private void ValidateParameterizedCondition(string condition, bool hasParameters)
         {
             ValidateParameterizedConditionStatic(condition, hasParameters);
@@ -151,7 +153,7 @@ namespace DBTools_Utilities
         /// This enforces security by rejecting conditions that appear to embed values directly.
         /// </summary>
         /// <param name="condition">The WHERE condition to validate</param>
-        /// <param name="hasParameters">Whether MySqlParameters is set</param>
+        /// <param name="hasParameters">Whether NpgsqlParameters is set</param>
         private static void ValidateParameterizedConditionStatic(string condition, bool hasParameters)
         {
             if (string.IsNullOrWhiteSpace(condition))
@@ -199,7 +201,7 @@ namespace DBTools_Utilities
             // If there's a comparison but no parameter markers and no parameters set, it's likely unsafe
             if (hasComparison && !condition.Contains("@") && hasParameters == false)
             {
-                throw new ArgumentException("WHERE conditions with comparison operators should use parameter placeholders (e.g., @whereParam0). Pass values through MySqlParameters property.");
+                throw new ArgumentException("WHERE conditions with comparison operators should use parameter placeholders (e.g., @whereParam0). Pass values through NpgsqlParameters property.");
             }
         }
         #endregion
@@ -334,7 +336,7 @@ namespace DBTools_Utilities
             setQuery(query);
 
             DataView dv = new DataView();
-            dv = RetrieveDataMySQL();
+            dv = RetrieveDataPostgreSQL();
             String[] arrayQuery = new String[dv.Count];
             for (int cont = 0; cont < dv.Count; cont++)
             {
@@ -356,7 +358,7 @@ namespace DBTools_Utilities
             DataView dv = new DataView();
             try
             {
-                dv = RetrieveDataMySQL();
+                dv = RetrieveDataPostgreSQL();
             }
             catch (Exception e)
             {
@@ -379,7 +381,7 @@ namespace DBTools_Utilities
         public void ExecuteQuery(String query)
         {
             setQuery(query);
-            MySQLExecuteQuery();
+            PostgreSQLExecuteQuery();
 
 
         }
@@ -391,7 +393,7 @@ namespace DBTools_Utilities
         /// Returns a DataView based on the parameters given<br/>
         /// This class can and should be used with the <see cref="QueryBuilder(object)">QueryBuilder Command</see><br/>
         /// NOTE: For security, _fields and _table should be validated/sanitized as they cannot be parameterized.<br/>
-        /// The _conditions parameter MUST use parameter placeholders (e.g., "id = @whereParam0") and values MUST be passed through MySqlParameters property before calling this method.
+        /// The _conditions parameter MUST use parameter placeholders (e.g., "id = @whereParam0") and values MUST be passed through NpgsqlParameters property before calling this method.
         /// This method will reject conditions that contain literal values.
         /// </summary>
         /// <param name="_fields">Field names to select</param>
@@ -401,12 +403,12 @@ namespace DBTools_Utilities
         public DataView Select(String _fields, String _table, String _conditions)
         {
             // Validate table and field names to prevent injection
-            // Table and field names cannot be parameterized in MySQL
+            // Table and field names cannot be parameterized in PostgreSQL
             ValidateIdentifier(_table, "table");
             ValidateIdentifier(_fields, "fields");
 
             // Validate that conditions are parameterized
-            ValidateParameterizedCondition(_conditions, this.MySqlParameters != null && this.MySqlParameters.Count > 0);
+            ValidateParameterizedCondition(_conditions, this.NpgsqlParameters != null && this.NpgsqlParameters.Count > 0);
 
             String query = "";
             if (_conditions != "")
@@ -437,7 +439,7 @@ namespace DBTools_Utilities
             ValidateIdentifier(_table, "table");
 
             String fields = "", paramPlaceholders = "";
-            List<MySql.Data.MySqlClient.MySqlParameter> parameters = new List<MySql.Data.MySqlClient.MySqlParameter>();
+            List<Npgsql.NpgsqlParameter> parameters = new List<Npgsql.NpgsqlParameter>();
 
             //BUILD FIELDS AND PARAMETERS
             String query = "INSERT INTO " + _table + "(";
@@ -450,7 +452,7 @@ namespace DBTools_Utilities
                 paramPlaceholders += "@param" + cont + ",";
                 
                 // Add parameterized value
-                parameters.Add(new MySql.Data.MySqlClient.MySqlParameter("@param" + cont, _values[cont]));
+                parameters.Add(new Npgsql.NpgsqlParameter("@param" + cont, _values[cont]));
             }
             fields = fields.Remove(fields.Length - 1, 1);
             paramPlaceholders = paramPlaceholders.Remove(paramPlaceholders.Length - 1, 1);
@@ -459,9 +461,9 @@ namespace DBTools_Utilities
             query += fields + ") VALUES(" + paramPlaceholders + ")";
             
             //SET PARAMETERS AND EXECUTE
-            this.MySqlParameters = parameters;
+            this.NpgsqlParameters = parameters;
             setQuery(query);
-            MySQLExecuteQuery();
+            PostgreSQLExecuteQuery();
             
             if (Error != null)
             {
@@ -471,7 +473,7 @@ namespace DBTools_Utilities
         }
         /// <summary>
         /// Updates the database using parameterized queries to prevent SQL injection.<br/>
-        /// NOTE: The condition parameter MUST use parameter placeholders (e.g., "id = @whereParam0") and values MUST be passed through MySqlParameters property before calling this method.
+        /// NOTE: The condition parameter MUST use parameter placeholders (e.g., "id = @whereParam0") and values MUST be passed through NpgsqlParameters property before calling this method.
         /// This method will reject conditions that contain literal values.
         /// </summary>
         /// <param name="_fields"></param>
@@ -486,16 +488,16 @@ namespace DBTools_Utilities
 
             // Validate that condition is parameterized if provided
             // Note: We check for existing parameters before we add the SET parameters
-            bool hasWhereParameters = this.MySqlParameters != null && this.MySqlParameters.Count > 0;
+            bool hasWhereParameters = this.NpgsqlParameters != null && this.NpgsqlParameters.Count > 0;
             ValidateParameterizedCondition(condition, hasWhereParameters);
 
             String setClause = "";
-            List<MySql.Data.MySqlClient.MySqlParameter> parameters = new List<MySql.Data.MySqlClient.MySqlParameter>();
+            List<Npgsql.NpgsqlParameter> parameters = new List<Npgsql.NpgsqlParameter>();
 
             // Merge with any existing parameters (for WHERE clause) first
-            if (this.MySqlParameters != null)
+            if (this.NpgsqlParameters != null)
             {
-                parameters.AddRange(this.MySqlParameters);
+                parameters.AddRange(this.NpgsqlParameters);
             }
 
             //BUILD SET CLAUSE WITH PARAMETERS
@@ -513,7 +515,7 @@ namespace DBTools_Utilities
                 setClause += _fields[cont] + "=@setParam" + cont;
                 
                 // Add parameterized value
-                parameters.Add(new MySql.Data.MySqlClient.MySqlParameter("@setParam" + cont, _values[cont]));
+                parameters.Add(new Npgsql.NpgsqlParameter("@setParam" + cont, _values[cont]));
             }
 
             query += setClause;
@@ -524,9 +526,9 @@ namespace DBTools_Utilities
             }
 
             //SET PARAMETERS AND EXECUTE
-            this.MySqlParameters = parameters;
+            this.NpgsqlParameters = parameters;
             setQuery(query);
-            MySQLExecuteQuery();
+            PostgreSQLExecuteQuery();
             
             if (Error != null)
             {
@@ -537,7 +539,7 @@ namespace DBTools_Utilities
         /// <summary>
         /// Deletes the row from the database.<br/>
         /// For security reasons, the use of a condition is mandatory.<br/>
-        /// NOTE: The condition parameter MUST use parameter placeholders (e.g., "id = @whereParam0") and values MUST be passed through MySqlParameters property before calling this method.
+        /// NOTE: The condition parameter MUST use parameter placeholders (e.g., "id = @whereParam0") and values MUST be passed through NpgsqlParameters property before calling this method.
         /// This method will reject conditions that contain literal values.
         /// </summary>
         /// <param name="_table"></param>
@@ -549,14 +551,14 @@ namespace DBTools_Utilities
             ValidateIdentifier(_table, "table");
 
             // Validate that condition is parameterized
-            ValidateParameterizedCondition(condition, this.MySqlParameters != null && this.MySqlParameters.Count > 0);
+            ValidateParameterizedCondition(condition, this.NpgsqlParameters != null && this.NpgsqlParameters.Count > 0);
 
             //BUILD DELETE QUERY
             String query = "DELETE FROM " + _table + " WHERE " + condition;
             
             //EXECUTE QUERY
             setQuery(query);
-            MySQLExecuteQuery();
+            PostgreSQLExecuteQuery();
             
             if (Error != null)
             {
@@ -567,7 +569,7 @@ namespace DBTools_Utilities
         //MODULOS DE MANIPULAÇAO DE DADOS
         /// <summary>
         /// Returns a DataView based on the query without the select clause<br/>
-        /// NOTE: For security, MUST use parameter placeholders (e.g., @whereParam0) for values in WHERE conditions and pass values through MySqlParameters property before calling this method.
+        /// NOTE: For security, MUST use parameter placeholders (e.g., @whereParam0) for values in WHERE conditions and pass values through NpgsqlParameters property before calling this method.
         /// Table and field names should be validated separately and cannot be parameterized.
         /// This method will reject queries that contain obvious SQL injection patterns.
         /// </summary>
@@ -603,7 +605,7 @@ namespace DBTools_Utilities
                     whereClause = whereClause.Substring(0, endIndex).Trim();
                     
                     // Validate the WHERE clause is parameterized
-                    ValidateParameterizedCondition(whereClause, this.MySqlParameters != null && this.MySqlParameters.Count > 0);
+                    ValidateParameterizedCondition(whereClause, this.NpgsqlParameters != null && this.NpgsqlParameters.Count > 0);
                 }
             }
 
@@ -617,7 +619,7 @@ namespace DBTools_Utilities
         /// Returns a string based on the parameters given<br/>
         /// NOTE: For security, this method validates identifiers and checks for SQL injection patterns. 
         /// The _conditions parameter should use parameter placeholders (e.g., @whereParam0) for values.
-        /// Use MySqlParameters to provide the actual values when executing the query.
+        /// Use NpgsqlParameters to provide the actual values when executing the query.
         /// </summary>
         /// <param name="_fields">Field names to select</param>
         /// <param name="_table">Table name</param>
@@ -630,7 +632,7 @@ namespace DBTools_Utilities
             ValidateIdentifierStatic(_fields, "fields");
 
             // Validate for injection patterns
-            // Note: Static method can't check MySqlParameters, so we only check for obvious injection patterns
+            // Note: Static method can't check NpgsqlParameters, so we only check for obvious injection patterns
             // Pass false for hasParameters but the validation will still check for @ symbols in comparisons
             if (!string.IsNullOrWhiteSpace(_conditions))
             {
@@ -678,7 +680,7 @@ namespace DBTools_Utilities
         /// <summary>
         /// Returns an insert query with parameterized placeholders based on the parameters given<br/>
         /// This method returns a query with @param0, @param1, etc. placeholders.<br/>
-        /// Use MySqlParameters to provide the actual values when executing the query.
+        /// Use NpgsqlParameters to provide the actual values when executing the query.
         /// </summary>
         /// <param name="_fields">Field names</param>
         /// <param name="_table">Table name</param>
@@ -710,13 +712,13 @@ namespace DBTools_Utilities
         /// <summary>
         /// Legacy method that creates INSERT query with embedded values (DEPRECATED - SQL INJECTION RISK)<br/>
         /// This method directly embeds values in the SQL query which is vulnerable to SQL injection.<br/>
-        /// Use InsertQuery() with MySqlParameters instead for better security.
+        /// Use InsertQuery() with NpgsqlParameters instead for better security.
         /// </summary>
         /// <param name="_fields">Field names</param>
         /// <param name="_table">Table name</param>
         /// <param name="_values">Values to embed (UNSAFE)</param>
         /// <returns>INSERT query string with embedded values</returns>
-        [Obsolete("This method is deprecated due to SQL injection risks. Use InsertQuery() with MySqlParameters instead.", false)]
+        [Obsolete("This method is deprecated due to SQL injection risks. Use InsertQuery() with NpgsqlParameters instead.", false)]
         public static string InsertQueryLegacy(String[] _fields, String _table, String[] _values)
         {
             String fields = "", values = "";
@@ -794,7 +796,7 @@ namespace DBTools_Utilities
         /// <summary>
         /// Returns an UPDATE query with parameterized placeholders<br/>
         /// This method returns a query with @setParam0, @setParam1, etc. placeholders for SET values.<br/>
-        /// Use MySqlParameters to provide the actual values when executing the query.<br/>
+        /// Use NpgsqlParameters to provide the actual values when executing the query.<br/>
         /// NOTE: The condition parameter should also use parameter placeholders (e.g., @whereParam0) for values to avoid naming conflicts.
         /// </summary>
         /// <param name="_fields">Field names</param>
@@ -835,14 +837,14 @@ namespace DBTools_Utilities
         /// <summary>
         /// Legacy method that creates UPDATE query with embedded values (DEPRECATED - SQL INJECTION RISK)<br/>
         /// This method directly embeds values in the SQL query which is vulnerable to SQL injection.<br/>
-        /// Use UpdateQuery() with MySqlParameters instead for better security.
+        /// Use UpdateQuery() with NpgsqlParameters instead for better security.
         /// </summary>
         /// <param name="_fields">Field names</param>
         /// <param name="_table">Table name</param>
         /// <param name="_values">Values to embed (UNSAFE)</param>
         /// <param name="condition">WHERE condition</param>
         /// <returns>UPDATE query string with embedded values</returns>
-        [Obsolete("This method is deprecated due to SQL injection risks. Use UpdateQuery() with MySqlParameters instead.", false)]
+        [Obsolete("This method is deprecated due to SQL injection risks. Use UpdateQuery() with NpgsqlParameters instead.", false)]
         public static string UpdateQueryLegacy(String[] _fields, String _table, String[] _values, String condition = "")
         {
             String fields = "", values = "";
@@ -924,7 +926,7 @@ namespace DBTools_Utilities
         /// Returns a DELETE query<br/>
         /// For security reasons, the use of a condition is mandatory.<br/>
         /// NOTE: The condition parameter should use parameter placeholders (e.g., "id = @id") for values.
-        /// Use MySqlParameters to provide the actual values when executing the query.
+        /// Use NpgsqlParameters to provide the actual values when executing the query.
         /// </summary>
         /// <param name="_table">Table name</param>
         /// <param name="condition">WHERE condition (should use parameter placeholders for values)</param>
