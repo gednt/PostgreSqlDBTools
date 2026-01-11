@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DBTools © MySql Edition")]
-[assembly: AssemblyDescription("A simple Mysql wrapper for everyone")]
+[assembly: AssemblyTitle("DBTools © PostgreSQL Edition")]
+[assembly: AssemblyDescription("A simple PostgreSQL wrapper for everyone")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("DMF Software")]
 [assembly: AssemblyProduct("DBTools")]

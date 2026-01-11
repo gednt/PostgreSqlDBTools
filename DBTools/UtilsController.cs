@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using DBTools.Model;
-using MySql.Data.MySqlClient;
+using Npgsql;
 
 namespace DBTools_Utilities
 {
@@ -16,7 +16,7 @@ namespace DBTools_Utilities
     internal class WhereClauseResult
     {
         public string WhereClause { get; set; }
-        public List<MySqlParameter> Parameters { get; set; }
+        public List<NpgsqlParameter> Parameters { get; set; }
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ namespace DBTools_Utilities
             string database, 
             string uid, 
             string password, 
-            string port = "3306",
+            string port = "5432",
             string tableName = null,
             string primaryKeyName = "Id",
             bool autoIncrement = true) 
@@ -108,7 +108,7 @@ namespace DBTools_Utilities
             // Set parameters if any
             if (result.Parameters.Count > 0)
             {
-                this.MySqlParameters = result.Parameters;
+                this.NpgsqlParameters = result.Parameters;
             }
             
             DataView dv = Select("*", _tableName, result.WhereClause);
@@ -199,7 +199,7 @@ namespace DBTools_Utilities
             // Set parameters for WHERE clause
             if (result.Parameters.Count > 0)
             {
-                this.MySqlParameters = result.Parameters;
+                this.NpgsqlParameters = result.Parameters;
             }
             
             return Update(obj.columns, _tableName, obj.valuesString, result.WhereClause);
@@ -218,7 +218,7 @@ namespace DBTools_Utilities
             // Set parameters for WHERE clause
             if (result.Parameters.Count > 0)
             {
-                this.MySqlParameters = result.Parameters;
+                this.NpgsqlParameters = result.Parameters;
             }
             
             return Delete(_tableName, result.WhereClause);
@@ -253,11 +253,11 @@ namespace DBTools_Utilities
             var obj = genericObjects[0];
             
             // Create WHERE clause for primary key
-            var parameters = new List<MySqlParameter>
+            var parameters = new List<NpgsqlParameter>
             {
-                new MySqlParameter("@whereParam0", pkValue)
+                new NpgsqlParameter("@whereParam0", pkValue)
             };
-            this.MySqlParameters = parameters;
+            this.NpgsqlParameters = parameters;
             
             string whereClause = string.Format("{0} = @whereParam0", _primaryKeyName);
             
@@ -344,7 +344,7 @@ namespace DBTools_Utilities
         /// </summary>
         private WhereClauseResult ParseWhereExpression(Expression<Func<T, bool>> predicate)
         {
-            var parameters = new List<MySqlParameter>();
+            var parameters = new List<NpgsqlParameter>();
             var whereClause = ParseExpression(predicate.Body, parameters);
             return new WhereClauseResult
             {
@@ -356,7 +356,7 @@ namespace DBTools_Utilities
         /// <summary>
         /// Recursively parses an expression tree into SQL
         /// </summary>
-        private string ParseExpression(Expression expression, List<MySqlParameter> parameters)
+        private string ParseExpression(Expression expression, List<NpgsqlParameter> parameters)
         {
             switch (expression.NodeType)
             {
@@ -391,7 +391,7 @@ namespace DBTools_Utilities
                 case ExpressionType.Constant:
                     var constExp = (ConstantExpression)expression;
                     var paramName = string.Format("@param{0}", parameters.Count);
-                    parameters.Add(new MySqlParameter(paramName, constExp.Value ?? DBNull.Value));
+                    parameters.Add(new NpgsqlParameter(paramName, constExp.Value ?? DBNull.Value));
                     return paramName;
             }
             
@@ -400,7 +400,7 @@ namespace DBTools_Utilities
             {
                 var value = Expression.Lambda(expression).Compile().DynamicInvoke();
                 var paramName = string.Format("@param{0}", parameters.Count);
-                parameters.Add(new MySqlParameter(paramName, value ?? DBNull.Value));
+                parameters.Add(new NpgsqlParameter(paramName, value ?? DBNull.Value));
                 return paramName;
             }
             catch (Exception ex)
@@ -412,7 +412,7 @@ namespace DBTools_Utilities
         /// <summary>
         /// Parses a binary comparison expression into SQL
         /// </summary>
-        private string ParseBinaryExpression(BinaryExpression expression, List<MySqlParameter> parameters)
+        private string ParseBinaryExpression(BinaryExpression expression, List<NpgsqlParameter> parameters)
         {
             string left = ParseExpression(expression.Left, parameters);
             string right = ParseExpression(expression.Right, parameters);
