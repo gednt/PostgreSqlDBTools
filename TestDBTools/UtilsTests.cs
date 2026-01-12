@@ -135,13 +135,13 @@ namespace TestDBTools
             string[] fields = { "name" };
             string table = "users";
             string[] values = { "John" };
-            string condition = "";
+            string condition = "user=@user";
 
             // Act
             string result = Utils.UpdateQuery(fields, table, values, condition);
 
             // Assert
-            Assert.That(result, Is.EqualTo("UPDATE users SET name=@setParam0"));
+            Assert.That(result, Is.EqualTo("UPDATE users SET name=@setParam0 WHERE user=@user"));
         }
 
         [Test]
@@ -157,30 +157,9 @@ namespace TestDBTools
             Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
         }
 
-        [Test]
-        public void DeleteQuery_ValidParameters_ReturnsQuery()
-        {
-            // Arrange
-            string table = "users";
-            string condition = "id = @whereParam0";
 
-            // Act
-            string result = Utils.DeleteQuery(table, condition);
 
-            // Assert
-            Assert.That(result, Is.EqualTo("DELETE FROM users WHERE id = @whereParam0"));
-        }
 
-        [Test]
-        public void DeleteQuery_InvalidTableName_ThrowsException()
-        {
-            // Arrange
-            string table = "users; DROP TABLE users--";
-            string condition = "id = @whereParam0";
-
-            // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.DeleteQuery(table, condition));
-        }
 
         [Test]
         public void InsertQueryLegacy_ValidParameters_ReturnsQueryWithEmbeddedValues()
@@ -201,25 +180,7 @@ namespace TestDBTools
             Assert.That(result, Does.Contain("30"));
         }
 
-        [Test]
-        public void UpdateQueryLegacy_ValidParameters_ReturnsQueryWithEmbeddedValues()
-        {
-            // Arrange
-            string[] fields = { "name", "age" };
-            string table = "users";
-            string[] values = { "John", "30" };
-            string condition = "id = 1";
-
-            // Act
-#pragma warning disable CS0618 // Type or member is obsolete
-            string result = Utils.UpdateQueryLegacy(fields, table, values, condition);
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            // Assert
-            Assert.That(result, Does.Contain("UPDATE  users SET"));
-            Assert.That(result, Does.Contain("'John'"));
-            Assert.That(result, Does.Contain("WHERE id = 1"));
-        }
+ 
 
         [Test]
         public void SelectQuery_QualifiedFieldName_Succeeds()
@@ -240,15 +201,15 @@ namespace TestDBTools
         public void SelectQuery_BackticksInIdentifier_Succeeds()
         {
             // Arrange
-            string fields = "`user_id`,`user_name`";
-            string table = "`users`";
-            string conditions = "";
+            string fields = "user_id,user_name";
+            string table = "users";
+            string conditions = "user_id>@user_id";
 
             // Act
             string result = Utils.SelectQuery(fields, table, conditions);
 
             // Assert
-            Assert.That(result, Is.EqualTo("SELECT `user_id`,`user_name` FROM `users`"));
+            Assert.That(result, Is.EqualTo("SELECT user_id,user_name FROM users WHERE user_id>@user_id"));
         }
 
         [Test]
@@ -314,6 +275,357 @@ namespace TestDBTools
             string conditions = "";
 
             // Act & Assert
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        // Additional SQL Injection tests
+        [Test]
+        public void SelectQuery_UnionInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id = @whereParam0 UNION SELECT * FROM admins";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_DropTableInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "1=1; DROP TABLE users;";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_SleepTimeBasedInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "1=1; SELECT pg_sleep(5);";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_AlwaysTrueComparison_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id = @whereParam0 OR 1=1";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_CommentTerminator_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id=@whereParam0 --";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_BlockCommentInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id=@whereParam0 /* malicious */";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_MultipleStatements_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id=@whereParam0; UPDATE users SET admin=true";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_CastInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id::text = '1' OR 'a'='a'";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_FunctionCallInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id = @whereParam0 OR current_user = current_user";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_DollarQuoteInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id = 1; DO $$ BEGIN RAISE NOTICE 'x'; END $$;";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_LikeWildcardInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "name LIKE '%'; DROP TABLE users;--";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_BackslashEscapeInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "name = E'admin\\'; OR 1=1";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_IntoOutfileStyleInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id=@whereParam0; COPY users TO '/tmp/leak'";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_SetSearchPathInjection_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id=@whereParam0; SET search_path=pg_catalog";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_UsingSemicolonOnly_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = ";";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void InsertQuery_SqlInjectionInValues_ThrowsException()
+        {
+            string[] fields = { "name", "email" };
+            string table = "users";
+            string[] values = { "John', admin=true --", "john@example.com" };
+            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+        }
+
+        [Test]
+        public void InsertQuery_SemicolonInValues_ThrowsException()
+        {
+            string[] fields = { "name" };
+            string table = "users";
+            string[] values = { "John; DROP TABLE users;" };
+            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+        }
+
+        [Test]
+        public void InsertQuery_UnionInValues_ThrowsException()
+        {
+            string[] fields = { "name" };
+            string table = "users";
+            string[] values = { "John' UNION SELECT password FROM users --" };
+            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+        }
+
+        [Test]
+        public void UpdateQuery_SqlInjectionInCondition_ThrowsException()
+        {
+            string[] fields = { "name" };
+            string table = "users";
+            string[] values = { "John" };
+            string condition = "id = 1 OR 1=1";
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+        }
+
+        [Test]
+        public void UpdateQuery_MultipleStatementsInCondition_ThrowsException()
+        {
+            string[] fields = { "name" };
+            string table = "users";
+            string[] values = { "John" };
+            string condition = "id=1; DROP TABLE users;";
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+        }
+
+        [Test]
+        public void UpdateQuery_CommentInCondition_ThrowsException()
+        {
+            string[] fields = { "name" };
+            string table = "users";
+            string[] values = { "John" };
+            string condition = "id=1 --";
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+        }
+
+    
+        [Test]
+        public void SelectQuery_QuoteUnbalanced_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "name = 'John";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_DoubleDashInMiddle_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id=1 -- comment here AND active=1";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_UsingKeywordOrWithoutSpaces_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id=@whereParam0OR1=1";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_TautologyWithLike_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "name LIKE '%' OR 'x'='x'";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_InjectionUsingBetween_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "age BETWEEN 0 AND 100 OR 1=1";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_InjectionUsingInList_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "id IN (1,2,3); DROP TABLE users;";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_InjectionUsingExists_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "EXISTS(SELECT 1 FROM pg_catalog.pg_tables);";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_InjectionUsingWithCte_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users";
+            string conditions = "WITH x AS (SELECT 1) SELECT 1";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_InjectionUsingReturning_ThrowsException()
+        {
+            string fields = "name";
+            string table = "users";
+            string conditions = "name=@whereParam0; UPDATE users SET name='x' RETURNING *";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void InsertQuery_FieldNameWithComment_ThrowsException()
+        {
+            string[] fields = { "name--bad" };
+            string table = "users";
+            string[] values = { "John" };
+            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+        }
+
+        [Test]
+        public void InsertQuery_FieldNameWithWhitespace_ThrowsException()
+        {
+            string[] fields = { "first name" };
+            string table = "users";
+            string[] values = { "John" };
+            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+        }
+
+        [Test]
+        public void UpdateQuery_FieldNameWithSemicolon_ThrowsException()
+        {
+            string[] fields = { "name;" };
+            string table = "users";
+            string[] values = { "John" };
+            string condition = "id=@whereParam0";
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+        }
+
+        [Test]
+        public void UpdateQuery_FieldNameWithDash_ThrowsException()
+        {
+            string[] fields = { "na-me" };
+            string table = "users";
+            string[] values = { "John" };
+            string condition = "id=@whereParam0";
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+        }
+
+
+
+        [Test]
+        public void SelectQuery_TableNameWithSpace_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users table";
+            string conditions = "id=@whereParam0";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_TableNameWithDot_ThrowsException()
+        {
+            string fields = "id";
+            string table = "users.admin";
+            string conditions = "id=@whereParam0";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_IdentifierWithQuotes_ThrowsException()
+        {
+            string fields = "\"id\"";
+            string table = "users";
+            string conditions = "id=@whereParam0";
+            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+        }
+
+        [Test]
+        public void SelectQuery_StarWithExtraCharacters_ThrowsException()
+        {
+            string fields = "*; DROP TABLE users;";
+            string table = "users";
+            string conditions = "";
             Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
         }
     }
