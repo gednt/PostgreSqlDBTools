@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using System;
-using DBTools.Security;
+using DbTools.Security;
 
 namespace TestDBTools
 {

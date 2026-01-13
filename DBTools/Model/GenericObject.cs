@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DBTools.Model
+namespace DbTools.Model
 {
     public class GenericObject
     {

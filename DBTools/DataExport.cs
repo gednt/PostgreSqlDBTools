@@ -5,12 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-namespace DBTools_Utilities
+using DbTools.Model;
+namespace DbTools
 {
     public class DataExport
     {
-        public String ToCsv(List<DBTools.Model.GenericObject> genericObject, char separator, bool showColums = true, bool showTypes = true)
+        public String ToCsv(List<GenericObject> genericObject, char separator, bool showColums = true, bool showTypes = true)
         {
             string strReturn = "";
 

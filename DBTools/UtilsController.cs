@@ -5,10 +5,10 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using DBTools.Model;
+using DbTools.Model;
 using Npgsql;
 
-namespace DBTools_Utilities
+namespace DbTools
 {
     /// <summary>
     /// Helper class to hold WHERE clause parsing results
@@ -89,8 +89,8 @@ namespace DBTools_Utilities
         /// </summary>
         public List<T> GetAll()
         {
-            connectDB();
-            DataView dv = Select("*", _tableName, "");
+            ConnectDB();
+            DataView dv = SelectDv("*", _tableName, "");
             return MapDataViewToList(dv);
         }
 
@@ -100,7 +100,7 @@ namespace DBTools_Utilities
         /// </summary>
         public List<T> Where(Expression<Func<T, bool>> predicate)
         {
-            connectDB();
+            ConnectDB();
             
             // Parse expression to SQL WHERE clause
             var result = ParseWhereExpression(predicate);
@@ -111,7 +111,7 @@ namespace DBTools_Utilities
                 this.NpgsqlParameters = result.Parameters;
             }
             
-            DataView dv = Select("*", _tableName, result.WhereClause);
+            DataView dv = SelectDv("*", _tableName, result.WhereClause);
             return MapDataViewToList(dv);
         }
 
@@ -166,7 +166,7 @@ namespace DBTools_Utilities
         /// </summary>
         public bool Add(T entity)
         {
-            connectDB();
+            ConnectDB();
             var genericObjects = QueryBuilder(entity, _primaryKeyName, _autoIncrement);
             if (genericObjects.Count == 0)
             {
@@ -184,7 +184,7 @@ namespace DBTools_Utilities
         /// <param name="predicate">Condition for which records to update</param>
         public bool Update(T entity, Expression<Func<T, bool>> predicate)
         {
-            connectDB();
+            ConnectDB();
             var genericObjects = QueryBuilder(entity, _primaryKeyName, _autoIncrement);
             if (genericObjects.Count == 0)
             {
@@ -210,7 +210,7 @@ namespace DBTools_Utilities
         /// </summary>
         public bool Remove(Expression<Func<T, bool>> predicate)
         {
-            connectDB();
+            ConnectDB();
             
             // Parse the predicate to get WHERE clause
             var result = ParseWhereExpression(predicate);
@@ -222,46 +222,6 @@ namespace DBTools_Utilities
             }
             
             return Delete(_tableName, result.WhereClause);
-        }
-
-        /// <summary>
-        /// Saves changes to an entity by its primary key value
-        /// </summary>
-        public bool SaveChanges(T entity)
-        {
-            connectDB();
-            
-            // Get primary key value
-            var pkProperty = typeof(T).GetProperty(_primaryKeyName);
-            if (pkProperty == null)
-            {
-                throw new InvalidOperationException(string.Format("Primary key property '{0}' not found on type {1}", _primaryKeyName, typeof(T).Name));
-            }
-
-            var pkValue = pkProperty.GetValue(entity);
-            if (pkValue == null)
-            {
-                throw new InvalidOperationException("Primary key value cannot be null for SaveChanges");
-            }
-
-            var genericObjects = QueryBuilder(entity, _primaryKeyName, _autoIncrement);
-            if (genericObjects.Count == 0)
-            {
-                return false;
-            }
-
-            var obj = genericObjects[0];
-            
-            // Create WHERE clause for primary key
-            var parameters = new List<NpgsqlParameter>
-            {
-                new NpgsqlParameter("@whereParam0", pkValue)
-            };
-            this.NpgsqlParameters = parameters;
-            
-            string whereClause = string.Format("{0} = @whereParam0", _primaryKeyName);
-            
-            return Update(obj.columns, _tableName, obj.valuesString, whereClause);
         }
 
         #endregion

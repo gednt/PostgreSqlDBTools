@@ -2,8 +2,8 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using DBTools_Utilities;
-using DBTools.Model;
+using DbTools;
+using DbTools.Model;
 
 namespace TestDBTools
 {

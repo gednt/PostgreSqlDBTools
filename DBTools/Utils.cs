@@ -5,15 +5,15 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DBTools.Model;
+using DbTools.Model;
 using NPOI.Util.ArrayExtensions;
 
-namespace DBTools_Utilities
+namespace DbTools
 {
     /// <summary>
     /// Utils Class of the PostgreSQL DBTools Library
     /// </summary>
-    public class Utils : DBToolsDll.DBTools
+    public class Utils : DbTools.DBTools
     {
         public Utils(String Host, String Database, String Uid, String pwd, String port)
         {
@@ -313,9 +313,9 @@ namespace DBTools_Utilities
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public List<GenericObject> QueryBuilder(Object obj, String primaryKeyName = "", bool autoIncrement = true)
+        internal List<GenericObject> QueryBuilder(Object obj, String primaryKeyName = "", bool autoIncrement = true)
         {
-            connectDB();
+            ConnectDB();
             var arrayObject = obj.GetType().GetProperties();
             List<GenericObject_Simple> values = new List<GenericObject_Simple>();
             //List<String> fields = new List<string>();
@@ -404,7 +404,7 @@ namespace DBTools_Utilities
             return lstReturn;
         }
 
-        public void connectDB()
+        internal void ConnectDB()
         {
             setDataBase(Database);
             setHost(Host);
@@ -413,32 +413,11 @@ namespace DBTools_Utilities
         }
 
         /// <summary>
-        /// Returns a string array of the objects of the Database
-        /// </summary>
-        /// <param name="query"></param>
-        /// <returns></returns>
-        /// 
-        public String[] getInBd(String query)
-        {
-            setQuery(query);
-
-            DataView dv = new DataView();
-            dv = RetrieveDataPostgreSQL();
-            String[] arrayQuery = new String[dv.Count];
-            for (int cont = 0; cont < dv.Count; cont++)
-            {
-                arrayQuery[cont] = dv[cont][0].ToString();
-            }
-
-            return arrayQuery;
-        }
-
-        /// <summary>
         /// Returns a Dataview of the objects of the Database
         /// </summary>
         /// <param name="query"></param>
         /// <returns></returns>
-        public DataView getInBdDv(String query)
+        private DataView GetInBdDv(String query)
         {
             setQuery(query);
 
@@ -488,7 +467,7 @@ namespace DBTools_Utilities
         /// <param name="_table">Table name</param>
         /// <param name="_conditions">WHERE conditions (MUST use parameter placeholders like @whereParam0 for values)</param>
         /// <returns></returns>
-        public DataView Select(String _fields, String _table, String _conditions)
+        public DataView SelectDv(String _fields, String _table, String _conditions)
         {
             // Validate table and field names to prevent injection
             // Table and field names cannot be parameterized in PostgreSQL
@@ -509,7 +488,7 @@ namespace DBTools_Utilities
                 query = String.Format("SELECT {0} FROM {1}", _fields, _table);
             }
 
-            return getInBdDv(query);
+            return GetInBdDv(query);
         }
 
         /// <summary>
@@ -670,7 +649,7 @@ namespace DBTools_Utilities
         /// </summary>
         /// <param name="query_without_select">Query without SELECT keyword (MUST use parameter placeholders for values in WHERE conditions)</param>
         /// <returns></returns>
-        public DataView Select(String query_without_select)
+        public DataView SelectDvWithoutSelect(String query_without_select)
         {
             // Validate that any WHERE clause in the query uses parameters
             if (!string.IsNullOrWhiteSpace(query_without_select))
@@ -705,7 +684,7 @@ namespace DBTools_Utilities
                 }
             }
 
-            return getInBdDv("SELECT " + query_without_select);
+            return GetInBdDv("SELECT " + query_without_select);
         }
 
         //MODULOS DE MANIPULAÇAO DE DADOS
@@ -719,7 +698,7 @@ namespace DBTools_Utilities
         /// <param name="_table">Table name</param>
         /// <param name="_conditions">WHERE conditions (should use parameter placeholders like @whereParam0 for values)</param>
         /// <returns></returns>
-        public static string SelectQuery(String _fields, String _table, String _conditions)
+        public static string SelectQueryBuilder(String _fields, String _table, String _conditions)
         {
             // Validate identifiers
             ValidateIdentifierStatic(_table, "table");
@@ -801,7 +780,7 @@ namespace DBTools_Utilities
         /// <param name="_table">Table name</param>
         /// <param name="_values">Values (used only to determine placeholder count)</param>
         /// <returns>Parameterized INSERT query string</returns>
-        public static string InsertQuery(String[] _fields, String _table, String[] _values)
+        public static string InsertQueryBuilder(String[] _fields, String _table, String[] _values)
         {
             // Validate table name
             ValidateIdentifierStatic(_table, "table");
@@ -829,88 +808,7 @@ namespace DBTools_Utilities
             return query;
         }
 
-        /// <summary>
-        /// Legacy method that creates INSERT query with embedded values (DEPRECATED - SQL INJECTION RISK)<br/>
-        /// This method directly embeds values in the SQL query which is vulnerable to SQL injection.<br/>
-        /// Use InsertQuery() with NpgsqlParameters instead for better security.
-        /// </summary>
-        /// <param name="_fields">Field names</param>
-        /// <param name="_table">Table name</param>
-        /// <param name="_values">Values to embed (UNSAFE)</param>
-        /// <returns>INSERT query string with embedded values</returns>
-        [Obsolete(
-            "This method is deprecated due to SQL injection risks. Use InsertQuery() with NpgsqlParameters instead.",
-            false)]
-        public static string InsertQueryLegacy(String[] _fields, String _table, String[] _values)
-        {
-            String fields = "", values = "";
-            //MONTA OS CAMPOS
-            String query = "INSERT INTO " + _table + "(";
-
-            for (int cont = 0; cont < _fields.Length; cont++)
-            {
-                fields += _fields[cont] + ",";
-            }
-
-            fields = fields.Remove(fields.Length - 1, 1);
-            fields += ") VALUES(";
-            //VALORES
-            for (int cont = 0; cont < _fields.Length; cont++)
-            {
-                double numero;
-                if (double.TryParse(_values[cont], out numero) == false)
-                {
-                    if (values != "''" && _values[cont] != null)
-                    {
-                        if (_values[cont].Length > 0)
-                        {
-                            if (_values[cont].Substring(0, 1) != "'")
-                            {
-                                values += "'" + _values[cont] + "',";
-                            }
-                            else
-                            {
-                                values += _values[cont] + ",";
-                            }
-                        }
-                        else
-                        {
-                            if (_values[cont].Length == 0)
-                                values += "null,";
-                        }
-                    }
-                    else
-                    {
-                        if (_values[cont].Length > 0)
-                        {
-                            if (_values[cont].Substring(0, 1) != "'")
-                            {
-                                values += _values[cont];
-                            }
-                        }
-                        else
-                        {
-                            values += "null,";
-                        }
-                    }
-                }
-                else
-                {
-                    values += _values[cont].Replace(",", ".") + ",";
-                }
-            }
-
-            values = values.Remove(values.Length - 1, 1);
-
-            //FINALIZA A QUERY
-            query += fields;
-            query += values;
-
-            query += ")";
-            //RETORNA A QUERY
-            return query;
-        }
-
+        
         /// <summary>
         /// Returns an UPDATE query with parameterized placeholders<br/>
         /// This method returns a query with @setParam0, @setParam1, etc. placeholders for SET values.<br/>
@@ -922,7 +820,7 @@ namespace DBTools_Utilities
         /// <param name="_values">Values (used only to determine placeholder count)</param>
         /// <param name="condition">WHERE condition (should use parameter placeholders like @whereParam0 for values)</param>
         /// <returns>Parameterized UPDATE query string</returns>
-        public static string UpdateQuery(String[] _fields, String _table, String[] _values, String condition = "")
+        public static string UpdateQueryBuilder(String[] _fields, String _table, String[] _values, String condition = "")
         {
             // Validate table name
             ValidateIdentifierStatic(_table, "table");

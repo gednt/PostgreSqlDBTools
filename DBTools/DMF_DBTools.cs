@@ -2,10 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using DBTools.Model;
+using DbTools.Model;
 using System.Dynamic;
 
-namespace DBToolsDll
+namespace DbTools
 {
     /// <summary>
     /// DBTools is a PostgreSQL Library to manipulate data in PostgreSQL Databases

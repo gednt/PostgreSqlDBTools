@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using System;
-using DBTools_Utilities;
+using DbTools;
 
 namespace TestDBTools
 {
@@ -16,7 +16,7 @@ namespace TestDBTools
             string conditions = "id = @whereParam0";
 
             // Act
-            string result = Utils.SelectQuery(fields, table, conditions);
+            string result = Utils.SelectQueryBuilder(fields, table, conditions);
 
             // Assert
             Assert.That(result, Is.EqualTo("SELECT id,name,email FROM users WHERE id = @whereParam0"));
@@ -31,7 +31,7 @@ namespace TestDBTools
             string conditions = "";
 
             // Act
-            string result = Utils.SelectQuery(fields, table, conditions);
+            string result = Utils.SelectQueryBuilder(fields, table, conditions);
 
             // Assert
             Assert.That(result, Is.EqualTo("SELECT * FROM users"));
@@ -46,7 +46,7 @@ namespace TestDBTools
             string conditions = "";
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -58,7 +58,7 @@ namespace TestDBTools
             string conditions = "id = 1 OR 1=1";
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -70,7 +70,7 @@ namespace TestDBTools
             string conditions = "id = 1 -- comment";
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace TestDBTools
             string[] values = { "John", "john@example.com", "30" };
 
             // Act
-            string result = Utils.InsertQuery(fields, table, values);
+            string result = Utils.InsertQueryBuilder(fields, table, values);
 
             // Assert
             Assert.That(result, Is.EqualTo("INSERT INTO users(name,email,age) VALUES(@param0,@param1,@param2)"));
@@ -97,7 +97,7 @@ namespace TestDBTools
             string[] values = { "John" };
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(fields, table, values));
         }
 
         [Test]
@@ -109,7 +109,7 @@ namespace TestDBTools
             string[] values = { "John" };
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(fields, table, values));
         }
 
         [Test]
@@ -122,7 +122,7 @@ namespace TestDBTools
             string condition = "id = @whereParam0";
 
             // Act
-            string result = Utils.UpdateQuery(fields, table, values, condition);
+            string result = Utils.UpdateQueryBuilder(fields, table, values, condition);
 
             // Assert
             Assert.That(result, Is.EqualTo("UPDATE users SET name=@setParam0,email=@setParam1 WHERE id = @whereParam0"));
@@ -138,7 +138,7 @@ namespace TestDBTools
             string condition = "user=@user";
 
             // Act
-            string result = Utils.UpdateQuery(fields, table, values, condition);
+            string result = Utils.UpdateQueryBuilder(fields, table, values, condition);
 
             // Assert
             Assert.That(result, Is.EqualTo("UPDATE users SET name=@setParam0 WHERE user=@user"));
@@ -154,30 +154,7 @@ namespace TestDBTools
             string condition = "";
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
-        }
-
-
-
-
-
-        [Test]
-        public void InsertQueryLegacy_ValidParameters_ReturnsQueryWithEmbeddedValues()
-        {
-            // Arrange
-            string[] fields = { "name", "age" };
-            string table = "users";
-            string[] values = { "John", "30" };
-
-            // Act
-#pragma warning disable CS0618 // Type or member is obsolete
-            string result = Utils.InsertQueryLegacy(fields, table, values);
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            // Assert
-            Assert.That(result, Does.Contain("INSERT INTO users"));
-            Assert.That(result, Does.Contain("'John'"));
-            Assert.That(result, Does.Contain("30"));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(fields, table, values, condition));
         }
 
  
@@ -191,7 +168,7 @@ namespace TestDBTools
             string conditions = "";
 
             // Act
-            string result = Utils.SelectQuery(fields, table, conditions);
+            string result = Utils.SelectQueryBuilder(fields, table, conditions);
 
             // Assert
             Assert.That(result, Is.EqualTo("SELECT users.id,users.name FROM users"));
@@ -206,7 +183,7 @@ namespace TestDBTools
             string conditions = "user_id>@user_id";
 
             // Act
-            string result = Utils.SelectQuery(fields, table, conditions);
+            string result = Utils.SelectQueryBuilder(fields, table, conditions);
 
             // Assert
             Assert.That(result, Is.EqualTo("SELECT user_id,user_name FROM users WHERE user_id>@user_id"));
@@ -221,7 +198,7 @@ namespace TestDBTools
             string conditions = "";
 
             // Act
-            string result = Utils.SelectQuery(fields, table, conditions);
+            string result = Utils.SelectQueryBuilder(fields, table, conditions);
 
             // Assert
             Assert.That(result, Is.EqualTo("SELECT * FROM users"));
@@ -236,7 +213,7 @@ namespace TestDBTools
             string conditions = "name = 'test' OR active = 1";
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -248,7 +225,7 @@ namespace TestDBTools
             string conditions = "age > @whereParam0 AND status = @whereParam1";
 
             // Act
-            string result = Utils.SelectQuery(fields, table, conditions);
+            string result = Utils.SelectQueryBuilder(fields, table, conditions);
 
             // Assert
             Assert.That(result, Is.EqualTo("SELECT id,name FROM users WHERE age > @whereParam0 AND status = @whereParam1"));
@@ -263,7 +240,7 @@ namespace TestDBTools
             string conditions = "";
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -275,7 +252,7 @@ namespace TestDBTools
             string conditions = "";
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         // Additional SQL Injection tests
@@ -285,7 +262,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id = @whereParam0 UNION SELECT * FROM admins";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -294,7 +271,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "1=1; DROP TABLE users;";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -303,7 +280,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "1=1; SELECT pg_sleep(5);";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -312,7 +289,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id = @whereParam0 OR 1=1";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -321,7 +298,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id=@whereParam0 --";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -330,7 +307,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id=@whereParam0 /* malicious */";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -339,7 +316,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id=@whereParam0; UPDATE users SET admin=true";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -348,7 +325,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id::text = '1' OR 'a'='a'";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -357,7 +334,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id = @whereParam0 OR current_user = current_user";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -366,7 +343,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id = 1; DO $$ BEGIN RAISE NOTICE 'x'; END $$;";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -375,7 +352,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "name LIKE '%'; DROP TABLE users;--";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -384,7 +361,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "name = E'admin\\'; OR 1=1";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -393,7 +370,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id=@whereParam0; COPY users TO '/tmp/leak'";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -402,7 +379,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id=@whereParam0; SET search_path=pg_catalog";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -411,7 +388,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = ";";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -420,7 +397,7 @@ namespace TestDBTools
             string[] fields = { "name", "email" };
             string table = "users";
             string[] values = { "John', admin=true --", "john@example.com" };
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(fields, table, values));
         }
 
         [Test]
@@ -429,7 +406,7 @@ namespace TestDBTools
             string[] fields = { "name" };
             string table = "users";
             string[] values = { "John; DROP TABLE users;" };
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(fields, table, values));
         }
 
         [Test]
@@ -438,7 +415,7 @@ namespace TestDBTools
             string[] fields = { "name" };
             string table = "users";
             string[] values = { "John' UNION SELECT password FROM users --" };
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(fields, table, values));
         }
 
         [Test]
@@ -448,7 +425,7 @@ namespace TestDBTools
             string table = "users";
             string[] values = { "John" };
             string condition = "id = 1 OR 1=1";
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(fields, table, values, condition));
         }
 
         [Test]
@@ -458,7 +435,7 @@ namespace TestDBTools
             string table = "users";
             string[] values = { "John" };
             string condition = "id=1; DROP TABLE users;";
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(fields, table, values, condition));
         }
 
         [Test]
@@ -468,7 +445,7 @@ namespace TestDBTools
             string table = "users";
             string[] values = { "John" };
             string condition = "id=1 --";
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(fields, table, values, condition));
         }
 
     
@@ -478,7 +455,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "name = 'John";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -487,7 +464,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id=1 -- comment here AND active=1";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -496,7 +473,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id=@whereParam0OR1=1";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -505,7 +482,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "name LIKE '%' OR 'x'='x'";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -514,7 +491,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "age BETWEEN 0 AND 100 OR 1=1";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -523,7 +500,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "id IN (1,2,3); DROP TABLE users;";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -532,7 +509,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "EXISTS(SELECT 1 FROM pg_catalog.pg_tables);";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -541,7 +518,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users";
             string conditions = "WITH x AS (SELECT 1) SELECT 1";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -550,7 +527,7 @@ namespace TestDBTools
             string fields = "name";
             string table = "users";
             string conditions = "name=@whereParam0; UPDATE users SET name='x' RETURNING *";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -559,7 +536,7 @@ namespace TestDBTools
             string[] fields = { "name--bad" };
             string table = "users";
             string[] values = { "John" };
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(fields, table, values));
         }
 
         [Test]
@@ -568,7 +545,7 @@ namespace TestDBTools
             string[] fields = { "first name" };
             string table = "users";
             string[] values = { "John" };
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(fields, table, values));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(fields, table, values));
         }
 
         [Test]
@@ -578,7 +555,7 @@ namespace TestDBTools
             string table = "users";
             string[] values = { "John" };
             string condition = "id=@whereParam0";
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(fields, table, values, condition));
         }
 
         [Test]
@@ -588,7 +565,7 @@ namespace TestDBTools
             string table = "users";
             string[] values = { "John" };
             string condition = "id=@whereParam0";
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(fields, table, values, condition));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(fields, table, values, condition));
         }
 
 
@@ -599,7 +576,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users table";
             string conditions = "id=@whereParam0";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -608,7 +585,7 @@ namespace TestDBTools
             string fields = "id";
             string table = "users.admin";
             string conditions = "id=@whereParam0";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -617,7 +594,7 @@ namespace TestDBTools
             string fields = "\"id\"";
             string table = "users";
             string conditions = "id=@whereParam0";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
 
         [Test]
@@ -626,7 +603,7 @@ namespace TestDBTools
             string fields = "*; DROP TABLE users;";
             string table = "users";
             string conditions = "";
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery(fields, table, conditions));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder(fields, table, conditions));
         }
     }
 }

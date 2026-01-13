@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using DBTools_Utilities;
+using DbTools;
 
 namespace TestDBTools
 {
@@ -374,14 +374,6 @@ namespace TestDBTools
             Assert.Throws<ArgumentException>(() => controller.Remove(x => x.Id == 1));
         }
 
-        [Test]
-        public void SaveChanges_WithMissingPrimaryKeyProperty_Throws()
-        {
-            var controller = new UtilsController<NoPkModel>(tableName: "NoPkModel", primaryKeyName: "NonExistentPk");
-            var entity = new NoPkModel { Name = "n" };
-            Assert.Throws<InvalidOperationException>(() => controller.SaveChanges(entity));
-        }
-
         public class NoPkModel { public string Name { get; set; } }
 
         [Test]
@@ -404,55 +396,49 @@ namespace TestDBTools
         [Test]
         public void SelectQuery_WithUnsafeFields_Throws()
         {
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery("Name; DROP TABLE Users;", "Users", ""));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder("Name; DROP TABLE Users;", "Users", ""));
         }
 
         [Test]
         public void SelectQuery_WithUnsafeConditionsInjection_Throws()
         {
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery("*", "Users", "Name = 'x' OR 1=1"));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder("*", "Users", "Name = 'x' OR 1=1"));
         }
 
         [Test]
         public void UpdateQuery_WithUnsafeTable_Throws()
         {
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(new[] { "Name" }, "Users; --", new[] { "x" }, "Id = @whereParam0"));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(new[] { "Name" }, "Users; --", new[] { "x" }, "Id = @whereParam0"));
         }
 
-        [Test]
-        public void InsertQueryLegacy_WithValuesContainingQuotes_AllowsEmbeddingButIsDeprecated()
-        {
-            var q = Utils.InsertQueryLegacy(new[] { "Name" }, "Users", new[] { "O'Reilly" });
-            Assert.That(q, Does.Contain("INSERT INTO"));
-        }
         
 
         [Test]
         public void Utils_Select_WithUnsafeFieldList_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("Name, Password; DROP TABLE Users;", "Users", ""));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("Name, Password; DROP TABLE Users;", "Users", ""));
         }
 
         [Test]
         public void Utils_Select_WithCommentsInWhere_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("*", "Users", "Name = @p -- comment"));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("*", "Users", "Name = @p -- comment"));
         }
 
         [Test]
         public void Utils_Select_WithLiteralComparisonNoParams_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("*", "Users", "Name = 'x'"));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("*", "Users", "Name = 'x'"));
         }
 
         [Test]
         public void Utils_Select_WithOrTruePattern_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("*", "Users", "Name = @p OR TRUE"));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("*", "Users", "Name = @p OR TRUE"));
         }
 
         [Test]
@@ -493,25 +479,25 @@ namespace TestDBTools
         [Test]
         public void Utils_SelectQuery_WithComments_Throws()
         {
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery("*", "Users", "Name = 'x' --"));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder("*", "Users", "Name = 'x' --"));
         }
 
         [Test]
         public void Utils_SelectQuery_WithQuoteAndOr_Throws()
         {
-            Assert.Throws<ArgumentException>(() => Utils.SelectQuery("*", "Users", "'x' OR 1=1"));
+            Assert.Throws<ArgumentException>(() => Utils.SelectQueryBuilder("*", "Users", "'x' OR 1=1"));
         }
 
         [Test]
         public void Utils_UpdateQuery_WithUnsafeField_Throws()
         {
-            Assert.Throws<ArgumentException>(() => Utils.UpdateQuery(new[] { "Name; DROP" }, "Users", new[] { "x" }, "Id = @whereParam0"));
+            Assert.Throws<ArgumentException>(() => Utils.UpdateQueryBuilder(new[] { "Name; DROP" }, "Users", new[] { "x" }, "Id = @whereParam0"));
         }
 
         [Test]
         public void Utils_InsertQuery_WithUnsafeTable_Throws()
         {
-            Assert.Throws<ArgumentException>(() => Utils.InsertQuery(new[] { "Name" }, "Users; --", new[] { "x" }));
+            Assert.Throws<ArgumentException>(() => Utils.InsertQueryBuilder(new[] { "Name" }, "Users; --", new[] { "x" }));
         }
 
         [Test]
@@ -532,49 +518,49 @@ namespace TestDBTools
         public void Utils_Select_WithDangerousKeywordInFieldList_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("Name UNION SELECT Password", "Users", ""));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("Name UNION SELECT Password", "Users", ""));
         }
 
         [Test]
         public void Utils_Select_WithSpacesInFieldListContainingKeyword_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("Name, DROP TABLE Users", "Users", ""));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("Name, DROP TABLE Users", "Users", ""));
         }
 
         [Test]
         public void Utils_Select_WithBacktickInIdentifier_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("`Name`", "Users", ""));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("`Name`", "Users", ""));
         }
 
         [Test]
         public void Utils_Select_WithInvalidCharInIdentifier_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("Nam$e", "Users", ""));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("Nam$e", "Users", ""));
         }
 
         [Test]
         public void Utils_Select_WithUnsafeWhereNoAtSymbol_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("*", "Users", "Id = 1"));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("*", "Users", "Id = 1"));
         }
 
         [Test]
         public void Utils_Select_WithLikeLiteralWithoutParams_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("*", "Users", "Name LIKE '%x%'"));
+            Assert.Throws<ArgumentException>(() => utils.SelectDv("*", "Users", "Name LIKE '%x%'"));
         }
 
         [Test]
         public void Utils_Select_SingleStringOverload_WithUnsafeWhere_Throws()
         {
             var utils = new Utils();
-            Assert.Throws<ArgumentException>(() => utils.Select("* FROM Users WHERE Name = 'x'"));
+            Assert.Throws<ArgumentException>(() => utils.SelectDvWithoutSelect("* FROM Users WHERE Name = 'x'"));
         }
 
         [Test]
