@@ -9,6 +9,7 @@ The `UtilsController<T>` class is a generic controller for LINQ-style database m
 - **LINQ-style Query Methods**: Perform operations like `Where`, `FirstOrDefault`, `SingleOrDefault`, `Any`, and `Count` using LINQ expressions.
 - **CRUD Operations**: Includes methods for adding, updating, and removing records, as well as saving changes.
 - **Helper Methods**: Utility functions for mapping data and parsing expressions.
+- **Security Enhancements**: Ensures safe and secure database operations by validating inputs and using parameterized queries.
 
 ---
 

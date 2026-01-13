@@ -1,16 +1,15 @@
 # Utils.cs
 
 ## Description
-This file contains utility functions for database operations. These functions are designed to simplify common tasks such as data formatting, validation, and other helper methods.
+This file contains utility functions for database operations. These functions are designed to simplify common tasks such as data formatting, validation, query building, and data manipulation.
 
 ---
 
 ## Key Features
-- Data formatting utilities.
-- Validation functions.
-- Helper methods for database operations.
-- Query utilities for interacting with PostgreSQL databases.
-- Data manipulation modules for CRUD operations.
+- **Validation Functions**: Ensure safe and secure database operations by validating identifiers, field lists, and WHERE conditions.
+- **Query Utilities**: Build dynamic SQL queries for SELECT, INSERT, and UPDATE operations.
+- **Data Manipulation Modules**: Perform CRUD operations with parameterized queries to prevent SQL injection.
+- **Security Enhancements**: Strict validation to prevent SQL injection and enforce safe query practices.
 
 ---
 
@@ -43,10 +42,16 @@ var utils = new Utils("localhost", "mydb", "user", "password", "5432");
 utils.ValidateIdentifier("tableName", "table");
 
 // Build and execute a query
-var query = utils.Select("*", "tableName", "id = @whereParam0");
+var dataView = utils.SelectDv("*", "tableName", "id = @whereParam0");
 
 // Insert data
 var success = utils.Insert(new[] {"column1", "column2"}, "tableName", new[] {"value1", "value2"});
+
+// Update data
+var updated = utils.Update(new[] {"column1"}, "tableName", new[] {"newValue"}, "id = @whereParam0");
+
+// Delete data
+var deleted = utils.Delete("tableName", "id = @whereParam0");
 ```
 
 ---

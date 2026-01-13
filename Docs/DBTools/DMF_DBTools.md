@@ -6,11 +6,11 @@ This file contains the core database management functionality for the PostgreSql
 ---
 
 ## Key Features
-- Database connection management.
-- Query execution.
-- Error handling for database operations.
-- Data retrieval and manipulation.
-- Support for parameterized queries to prevent SQL injection.
+- **Database Connection Management**: Establishes and manages connections to the PostgreSQL database.
+- **Query Execution**: Executes SQL queries with support for parameterized queries to prevent SQL injection.
+- **Error Handling**: Provides robust error handling for database operations.
+- **Data Retrieval**: Fetches data as `DataView` or lists of objects.
+- **Support for Dynamic Queries**: Allows dynamic query building and execution.
 
 ---
 
@@ -18,7 +18,7 @@ This file contains the core database management functionality for the PostgreSql
 ### Example
 ```csharp
 // Example usage of DMF_DBTools
-var dbTools = new DBTools();
+var dbTools = new DMF_DBTools();
 
 // Set connection details
 dbTools.Host = "localhost";
@@ -53,7 +53,7 @@ var objects = dbTools.RetrieveObjectPostgreSQL();
 ---
 
 ## Dependencies
-- Npgsql: A .NET data provider for PostgreSQL.
+- **Npgsql**: A .NET data provider for PostgreSQL.
 
 ---
 

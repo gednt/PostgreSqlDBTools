@@ -16,12 +16,11 @@ PostgreSqlDBTools is a .NET 8 project designed to provide tools for interacting 
 |------|-------------|
 | `DMF_DBTools.cs` | Core database management functionality. |
 | `Model/GenericObject_Simple.cs` | Simplified model for generic objects. |
-| `Utils.cs` | Utility functions for database operations. |
+| `Utils.cs` | Utility functions for database operations, including validation, query building, and data manipulation. |
 | `Properties/AssemblyInfo.cs` | Assembly metadata. |
 | `Model/GenericObject.cs` | Model for generic objects. |
 | `DataExport.cs` | Handles data export operations. |
-| `Security/Auth.cs` | Security and authentication logic. |
-| `UtilsController.cs` | Controller for utility functions. |
+| `UtilsController.cs` | Controller for utility functions, providing LINQ-style queries and CRUD operations. |
 
 ### TestDBTools
 
@@ -29,7 +28,6 @@ PostgreSqlDBTools is a .NET 8 project designed to provide tools for interacting 
 |------|-------------|
 | `DataExportTests.cs` | Unit tests for `DataExport.cs`. |
 | `ModelTests.cs` | Unit tests for models. |
-| `SecurityAuthTests.cs` | Unit tests for `Auth.cs`. |
 | `UtilsControllerTests.cs` | Unit tests for `UtilsController.cs`. |
 | `UtilsTests.cs` | Unit tests for `Utils.cs`. |
 | `Properties/AssemblyInfo.cs` | Assembly metadata for the test project. |
